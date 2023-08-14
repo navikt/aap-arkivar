@@ -1,0 +1,4 @@
+package arkivar
+
+class App {
+}
