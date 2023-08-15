@@ -1,5 +1,6 @@
 package arkivar
 
+import arkivar.kafka.InnsendingKafkaDto
 import arkivar.kafka.Topics
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -60,7 +61,14 @@ fun Application.server(kafka: Streams = KafkaStreams()) {
 
 internal fun topology(): Topology {
     return no.nav.aap.kafka.streams.v2.topology {
-        consume(Topics.innsending)
-
+        consume(Topics.innsending).forEach { key, value ->
+            hentFilerOgArkiver(key, value)
+        }
     }
+}
+
+internal fun hentFilerOgArkiver(key:String, value:InnsendingKafkaDto){
+    //TODO: Kontakt fil lager
+    //TODO: construer journalpost
+    //TODO: Arkiver midlertidig journalføring
 }
