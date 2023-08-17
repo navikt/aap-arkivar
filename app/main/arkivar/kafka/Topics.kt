@@ -4,6 +4,7 @@ import no.nav.aap.kafka.streams.v2.Topic
 import no.nav.aap.kafka.streams.v2.serde.JsonSerde
 
 data class InnsendingKafkaDto(
+    val tittel: String,
     val innsendingsreferanse: String,
     val filreferanser: List<String>,
     val brevkode: String,

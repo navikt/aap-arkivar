@@ -7,10 +7,22 @@ import arkivar.kafka.InnsendingKafkaDto
 
 class Arkivar (val fillagerOppslag: FillagerOppslag, val joarkClient: JoarkClient){
     fun arkiverDokument(key:String, kafkaDto: InnsendingKafkaDto){
-        kafkaDto.filreferanser.forEach{ filReferanse ->
-            val fil = fillagerOppslag.hentFil(kafkaDto.innsendingsreferanse, filReferanse)
-            val journalpost = Journalpost(
+        val respons = fillagerOppslag.hentFiler(kafkaDto.innsendingsreferanse, kafkaDto.filreferanser)
+
+        val dokumenter = respons.filer.map { fil ->
+            Journalpost.Dokument(
                 tittel = fil.tittel,
+                brevkode = kafkaDto.brevkode,
+                dokumentVarianter = listOf(
+                    Journalpost.DokumentVariant(
+                        fysiskDokument = fil.fysiskDokument,
+                    )
+                )
+            )
+        }
+
+        val journalpost = Journalpost(
+                tittel = kafkaDto.tittel,
                 avsenderMottaker = Journalpost.AvsenderMottaker(
                     id = Fødselsnummer(
                         fnr = key
@@ -21,20 +33,9 @@ class Arkivar (val fillagerOppslag: FillagerOppslag, val joarkClient: JoarkClien
                         fnr = key
                     )
                 ),
-                dokumenter = listOf(
-                    Journalpost.Dokument(
-                        tittel = fil.tittel,
-                        brevkode = kafkaDto.brevkode,
-                        dokumentVarianter = listOf(
-                            Journalpost.DokumentVariant(
-                                fysiskDokument = fil.fysiskDokument,
-                            )
-                        )
-                    )
-                ),
+                dokumenter = dokumenter,
                 eksternReferanseId = kafkaDto.innsendingsreferanse,
             )
             joarkClient.opprettJournalpost(journalpost, kafkaDto.callId)
         }
     }
-}
