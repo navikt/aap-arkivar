@@ -1,5 +1,8 @@
 package arkivar
 
+import arkivar.arkiv.Fødselsnummer
+import arkivar.arkiv.JoarkClient
+import arkivar.arkiv.Journalpost
 import arkivar.kafka.InnsendingKafkaDto
 import arkivar.kafka.Topics
 import io.ktor.http.*
@@ -15,13 +18,17 @@ import no.nav.aap.kafka.streams.v2.KafkaStreams
 import no.nav.aap.kafka.streams.v2.Streams
 import no.nav.aap.kafka.streams.v2.Topology
 import no.nav.aap.kafka.streams.v2.config.StreamsConfig
+import no.nav.aap.ktor.client.AzureConfig
 import no.nav.aap.ktor.config.loadConfig
 import org.slf4j.LoggerFactory
 
 private val secureLog = LoggerFactory.getLogger("secureLog")
+
 data class Config(
-    val kafka: StreamsConfig
+    val kafka: StreamsConfig,
+    val azure: AzureConfig
 )
+
 fun main() {
     embeddedServer(Netty, port = 8080, module = Application::server).start(wait = true)
 }
@@ -35,10 +42,15 @@ fun Application.server(kafka: Streams = KafkaStreams()) {
     Thread.currentThread().setUncaughtExceptionHandler { _, e -> secureLog.error("Uhåndtert feil", e) }
     environment.monitor.subscribe(ApplicationStopping) { kafka.close() }
 
+    val fillagerOppslag=FillagerOppslag(config.azure)
+    val joarkClient = JoarkClient(config.azure)
+
+    val arkivar=Arkivar(fillagerOppslag,joarkClient)
+
     kafka.connect(
         config = config.kafka,
         registry = prometheus,
-        topology = topology()
+        topology = topology(arkivar)
     )
 
     routing {
@@ -59,16 +71,10 @@ fun Application.server(kafka: Streams = KafkaStreams()) {
     }
 }
 
-internal fun topology(): Topology {
+internal fun topology(arkivar: Arkivar): Topology {
     return no.nav.aap.kafka.streams.v2.topology {
         consume(Topics.innsending).forEach { key, value ->
-            hentFilerOgArkiver(key, value)
+            arkivar.arkiverDokument(key,value)
         }
     }
-}
-
-internal fun hentFilerOgArkiver(key:String, value:InnsendingKafkaDto){
-    //TODO: Kontakt fil lager
-    //TODO: construer journalpost
-    //TODO: Arkiver midlertidig journalføring
 }
