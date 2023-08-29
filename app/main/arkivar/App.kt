@@ -26,7 +26,12 @@ private val secureLog = LoggerFactory.getLogger("secureLog")
 
 data class Config(
     val kafka: StreamsConfig,
-    val azure: AzureConfig
+    val azure: AzureConfig,
+    val joark: JoarkConfig
+)
+
+data class JoarkConfig (
+    val baseUrl: String
 )
 
 fun main() {
@@ -43,7 +48,7 @@ fun Application.server(kafka: Streams = KafkaStreams()) {
     environment.monitor.subscribe(ApplicationStopping) { kafka.close() }
 
     val fillagerOppslag=FillagerOppslag(config.azure)
-    val joarkClient = JoarkClient(config.azure)
+    val joarkClient = JoarkClient(config.azure,config.joark)
 
     val arkivar=Arkivar(fillagerOppslag,joarkClient)
 
@@ -60,11 +65,11 @@ fun Application.server(kafka: Streams = KafkaStreams()) {
             }
             get("/live") {
                 val status = if (kafka.live()) HttpStatusCode.OK else HttpStatusCode.InternalServerError
-                call.respond(status, "vedtak")
+                call.respond(status, "arkivar")
             }
             get("/ready") {
                 val status = if (kafka.ready()) HttpStatusCode.OK else HttpStatusCode.InternalServerError
-                call.respond(status, "vedtak")
+                call.respond(status, "arkivar")
             }
 
         }

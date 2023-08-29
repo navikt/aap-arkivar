@@ -1,5 +1,6 @@
 package arkivar.arkiv
 
+import arkivar.JoarkConfig
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -28,7 +29,7 @@ private val clientLatencyStats: Summary = Summary.build()
     .help("Latency joark, in seconds")
     .register()
 
-class JoarkClient(azureConfig: AzureConfig) {
+class JoarkClient(azureConfig: AzureConfig, private val joarkConfig: JoarkConfig) {
 
     private val tokenProvider = AzureAdTokenProvider(azureConfig, "fillagerScope")
 
@@ -39,7 +40,7 @@ class JoarkClient(azureConfig: AzureConfig) {
         clientLatencyStats.startTimer().use {
             runBlocking {
                 val token = tokenProvider.getClientCredentialToken()
-                httpClient.post("url") {
+                httpClient.post("${joarkConfig.baseUrl}/rest/journalpostapi/v1/journalpost") {
                     accept(ContentType.Application.Json)
                     header("Nav-Callid", callId)
                     bearerAuth(token)

@@ -35,16 +35,16 @@ class FillagerOppslag(azureConfig: AzureConfig) {
 
 
     fun hentFiler(
-        innsendingsReferanse: String,
         filReferanser: List<String>
     ): FilRespons = clientLatencyStats.startTimer().use {
         runBlocking {
-            val token = tokenProvider.getClientCredentialToken()
-            httpClient.post("/fillager/$innsendingsReferanse/") {
-                bearerAuth(token)
-                contentType(ContentType.Application.Json)
-                setBody(filReferanser)
-            }.body()
+            FilRespons(filReferanser.map { referanse ->
+                val token = tokenProvider.getClientCredentialToken()
+                httpClient.get("/$referanse/") {
+                    bearerAuth(token)
+                    contentType(ContentType.Application.Json)
+                }.body<Fil>()
+            })
         }
     }
 
@@ -67,4 +67,4 @@ class FillagerOppslag(azureConfig: AzureConfig) {
 
 data class Fil(val tittel: String, val fysiskDokument: String)
 
-data class FilRespons(val filer:List<Fil>)
+data class FilRespons(val filer: List<Fil>)

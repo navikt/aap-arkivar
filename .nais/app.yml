@@ -41,3 +41,6 @@ spec:
     path: /actuator/metrics
   secureLogs:
     enabled: true
+  env:
+    - name: JOARK_BASE_URL
+      value: {{joark.url}}
