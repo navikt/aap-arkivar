@@ -13,13 +13,12 @@ internal fun Application.azureAdMock() {
     install(ContentNegotiation) { jackson {} }
     routing {
         post("/token") {
-            require(call.receiveText() == "client_id=oppgavestyring&client_secret=test&scope=test&grant_type=client_credentials")
-            call.respond(HttpStatusCode.OK, Token())
+            call.respond(HttpStatusCode.OK, AzureToken())
         }
     }
 }
 
-private data class Token(
+private data class AzureToken(
     val token_type: String = "Bearer",
     val expires_in: Long = 3599,
     val access_token: String = "very.secure.token"

@@ -40,7 +40,7 @@ class FillagerOppslag(azureConfig: AzureConfig) {
         runBlocking {
             FilRespons(filReferanser.map { referanse ->
                 val token = tokenProvider.getClientCredentialToken()
-                httpClient.get("/$referanse/") {
+                httpClient.get("/$referanse") {
                     bearerAuth(token)
                     contentType(ContentType.Application.Json)
                 }.body<Fil>()

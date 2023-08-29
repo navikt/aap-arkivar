@@ -1,6 +1,8 @@
 package arkivar
 
 import arkivar.mock.azureAdMock
+import arkivar.mock.fillagerMock
+import arkivar.mock.joarkMock
 import io.ktor.server.application.*
 import io.ktor.server.config.*
 import io.ktor.server.engine.*
@@ -10,11 +12,15 @@ import no.nav.aap.kafka.streams.v2.test.StreamsMock
 
 class MockEnvironment : AutoCloseable {
     private val azureAd = embeddedServer(Netty, port = 0, module = Application::azureAdMock).apply { start() }
+    private val joark = embeddedServer(Netty, port = 0, module = Application::joarkMock).apply { start() }
+    private val fillager = embeddedServer(Netty, port = 80, module = Application::fillagerMock).apply { start() }
 
     val kafka = StreamsMock()
 
     override fun close() {
         azureAd.stop()
+        joark.stop()
+        fillager.stop()
     }
 
     fun applicationConfig() = MapApplicationConfig(
@@ -28,6 +34,7 @@ class MockEnvironment : AutoCloseable {
         "KAFKA_TRUSTSTORE_PATH" to "",
         "KAFKA_KEYSTORE_PATH" to "",
         "KAFKA_CREDSTORE_PASSWORD" to "",
+        "JOARK_BASE_URL" to "http://localhost:${joark.port}"
     )
 
     companion object {

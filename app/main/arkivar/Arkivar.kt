@@ -7,7 +7,7 @@ import arkivar.kafka.InnsendingKafkaDto
 
 class Arkivar (val fillagerOppslag: FillagerOppslag, val joarkClient: JoarkClient){
     fun arkiverDokument(key:String, kafkaDto: InnsendingKafkaDto){
-        val respons = fillagerOppslag.hentFiler(kafkaDto.innsendingsreferanse, kafkaDto.filreferanser)
+        val respons = fillagerOppslag.hentFiler(kafkaDto.filreferanser)
 
         val dokumenter = respons.filer.map { fil ->
             Journalpost.Dokument(
