@@ -1,5 +1,6 @@
 package arkivar.mock
 
+import arkivar.arkiv.ArkivResponse
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
@@ -11,7 +12,13 @@ internal fun Application.joarkMock() {
     install(ContentNegotiation) { jackson {} }
     routing {
         post("/rest/journalpostapi/v1/journalpost") {
-            call.respond(HttpStatusCode.OK)
+            call.respond(HttpStatusCode.OK, ArkivResponse(
+                journalpostId = "123",
+                journalpostferdigstilt = false,
+                dokumenter = listOf(ArkivResponse.DokumentId(
+                    dokumentInfoId = "321"
+                ))
+            ))
         }
     }
 }

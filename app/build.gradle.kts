@@ -18,6 +18,8 @@ dependencies {
     implementation("com.github.navikt.aap-libs:ktor-auth-azuread:$aapLibVersion")
     implementation("com.github.navikt.aap-libs:kafka-2:$aapLibVersion")
 
+    implementation("org.apache.kafka:kafka-clients:3.5.1")
+
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")

@@ -12,6 +12,7 @@ import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.netty.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.logging.*
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import no.nav.aap.kafka.streams.v2.KafkaStreams
@@ -21,6 +22,7 @@ import no.nav.aap.kafka.streams.v2.config.StreamsConfig
 import no.nav.aap.ktor.client.AzureConfig
 import no.nav.aap.ktor.config.loadConfig
 import org.slf4j.LoggerFactory
+import java.lang.Exception
 
 private val secureLog = LoggerFactory.getLogger("secureLog")
 
@@ -78,8 +80,33 @@ fun Application.server(kafka: Streams = KafkaStreams()) {
 
 internal fun topology(arkivar: Arkivar): Topology {
     return no.nav.aap.kafka.streams.v2.topology {
-        consume(Topics.innsending).forEach { key, value ->
-            arkivar.arkiverDokument(key,value)
-        }
+        consume(Topics.innsending)
+            .map { key, value ->
+                try {
+                    arkivar.arkiverDokument(key,value)
+                    ArkivOutcome(key, value,null)
+                } catch (e: Exception) {
+                    ArkivOutcome(key, value, e)
+                }
+            }
+            .filter { value ->
+                value.erIkkeVellykket()
+            }
+            .secureLog { value ->
+                val innsending = value.value
+                secureLog.error("Klarte ikke arkivere (innsendingref = ${innsending.innsendingsreferanse}, callid = ${innsending.callId})", value.exception)
+            }
+            .map { value ->
+                value.value
+            }
+            .produce(Topics.feiletInnsending)
     }
+}
+
+data class ArkivOutcome(
+    val key: String,
+    val value: InnsendingKafkaDto,
+    val exception: Exception?
+) {
+    fun erIkkeVellykket() = exception != null
 }

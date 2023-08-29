@@ -6,7 +6,7 @@ import arkivar.arkiv.Journalpost
 import arkivar.kafka.InnsendingKafkaDto
 
 class Arkivar (val fillagerOppslag: FillagerOppslag, val joarkClient: JoarkClient){
-    fun arkiverDokument(key:String, kafkaDto: InnsendingKafkaDto){
+    fun arkiverDokument(key:String, kafkaDto: InnsendingKafkaDto): String {
         val respons = fillagerOppslag.hentFiler(kafkaDto.filreferanser)
 
         val dokumenter = respons.filer.map { fil ->
@@ -36,6 +36,7 @@ class Arkivar (val fillagerOppslag: FillagerOppslag, val joarkClient: JoarkClien
                 dokumenter = dokumenter,
                 eksternReferanseId = kafkaDto.innsendingsreferanse,
             )
-            joarkClient.opprettJournalpost(journalpost, kafkaDto.callId)
+            val joarkRespons = joarkClient.opprettJournalpost(journalpost, kafkaDto.callId)
+        return joarkRespons.journalpostId
         }
     }

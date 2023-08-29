@@ -1,6 +1,7 @@
 package arkivar
 
 import arkivar.kafka.InnsendingKafkaDto
+import arkivar.kafka.Topics
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.ktor.client.plugins.contentnegotiation.*
@@ -16,6 +17,7 @@ import no.nav.aap.kafka.streams.v2.test.TestTopic
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class AppTest {
@@ -51,14 +53,16 @@ internal class AppTest {
     }
 
     @Test
-    fun `tar imot melding på kafka og arkiverer`(){
+    fun `sjekker at feilet kall ender på feiletTopic`(){
         lateinit var innsendingTopic: TestTopic<InnsendingKafkaDto>
+        lateinit var feiletTopic: TestTopic<InnsendingKafkaDto>
 
         val app = TestApplication {
-            environment { config=mocks.applicationConfig() }
+            environment { config = mocks.applicationConfig() }
             application {
                 server(mocks.kafka)
-                innsendingTopic=mocks.kafka.testTopic(Topic("aap.innsending.v1",JsonSerde.jackson()))
+                innsendingTopic = mocks.kafka.testTopic(Topic("aap.innsending.v1", JsonSerde.jackson()))
+                feiletTopic = mocks.kafka.testTopic(Topic("aap.innsending.dlq.v1", JsonSerde.jackson()))
             }
         }
 
@@ -73,18 +77,20 @@ internal class AppTest {
 
         runBlocking { client.get("/actuator/live") }
 
-
-        innsendingTopic.produce("12342332132"){
+        val fnr = "12342332132"
+        innsendingTopic.produce(fnr){
             InnsendingKafkaDto(
-                tittel="tittel",
+                tittel = "tittel",
                 innsendingsreferanse = "innsendingsRef",
-                filreferanser = listOf("FilRefListePunkt1"),
+                filreferanser = listOf("eksistererIkke"),
                 brevkode = "Brevkode-1",
                 callId = "Random-UUID-her"
             )
         }
-        assert(true)
 
+        feiletTopic.assertThat()
+            .hasNumberOfRecords(1)
+            .hasKey(fnr)
+            .hasLastValueMatching { assertEquals("innsendingsRef", it?.innsendingsreferanse) }
     }
-
 }
