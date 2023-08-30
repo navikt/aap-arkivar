@@ -1,7 +1,6 @@
 package arkivar
 
 import arkivar.kafka.InnsendingKafkaDto
-import arkivar.kafka.Topics
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.ktor.client.plugins.contentnegotiation.*
@@ -17,12 +16,11 @@ import no.nav.aap.kafka.streams.v2.test.TestTopic
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class AppTest {
     private lateinit var mocks: MockEnvironment
-    private lateinit var innsendingTopic: TestTopic<InnsendingKafkaDto>
+
     @BeforeAll
     fun setupMockEnvironment() {
         mocks = MockEnvironment()
@@ -50,6 +48,45 @@ internal class AppTest {
                 assertNotNull(metrics.bodyAsText())
             }
         }
+    }
+
+    @Test
+    fun `tester at vellykket arkivering gjør at ikke noe sendes på feiltopic`(){
+        lateinit var innsendingTopic: TestTopic<InnsendingKafkaDto>
+        lateinit var feiletTopic: TestTopic<InnsendingKafkaDto>
+
+        val app = TestApplication {
+            environment { config = mocks.applicationConfig() }
+            application {
+                server(mocks.kafka)
+                innsendingTopic = mocks.kafka.testTopic(Topic("aap.innsending.v1", JsonSerde.jackson()))
+                feiletTopic = mocks.kafka.testTopic(Topic("aap.innsending.dlq.v1", JsonSerde.jackson()))
+            }
+        }
+
+        val client = app.createClient {
+            install(ContentNegotiation) {
+                jackson {
+                    registerModule(JavaTimeModule())
+                    disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                }
+            }
+        }
+
+        runBlocking { client.get("/actuator/live") }
+
+        val fnr = "12342332132"
+        innsendingTopic.produce(fnr){
+            InnsendingKafkaDto(
+                tittel = "tittel",
+                innsendingsreferanse = "innsendingsRef",
+                filreferanser = listOf("sykmelding.txt"),
+                brevkode = "Brevkode-1",
+                callId = "Random-UUID-her"
+            )
+        }
+
+        feiletTopic.assertThat().hasNumberOfRecords(0)
     }
 
     @Test
