@@ -9,13 +9,13 @@ class Arkivar (val fillagerOppslag: FillagerOppslag, val joarkClient: JoarkClien
     fun arkiverDokument(key:String, kafkaDto: InnsendingKafkaDto): String {
         val respons = fillagerOppslag.hentFiler(kafkaDto.filreferanser)
 
-        val dokumenter = respons.filer.map { fil ->
+        val dokumenter = respons.map { fil ->
             Journalpost.Dokument(
                 tittel = fil.tittel,
                 brevkode = kafkaDto.brevkode,
                 dokumentVarianter = listOf(
                     Journalpost.DokumentVariant(
-                        fysiskDokument = fil.fysiskDokument,
+                        fysiskDokument = fil.fil,
                     )
                 )
             )

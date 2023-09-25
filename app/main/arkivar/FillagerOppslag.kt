@@ -17,6 +17,8 @@ import kotlinx.coroutines.runBlocking
 import no.nav.aap.ktor.client.AzureAdTokenProvider
 import no.nav.aap.ktor.client.AzureConfig
 import org.slf4j.LoggerFactory
+import java.time.LocalDateTime
+import java.util.*
 
 
 private const val FILLAGER_CLIENT_SECONDS_METRICNAME = "fillager_client_seconds"
@@ -36,15 +38,15 @@ class FillagerOppslag(azureConfig: AzureConfig) {
 
     fun hentFiler(
         filReferanser: List<String>
-    ): FilRespons = clientLatencyStats.startTimer().use {
+    ): List<FilDTO> = clientLatencyStats.startTimer().use {
         runBlocking {
-            FilRespons(filReferanser.map { referanse ->
+            filReferanser.map { referanse ->
                 val token = tokenProvider.getClientCredentialToken()
                 httpClient.get("/$referanse") {
                     bearerAuth(token)
                     contentType(ContentType.Application.Json)
-                }.body<Fil>()
-            })
+                }.body<List<FilDTO>>()
+            }.flatten()
         }
     }
 
@@ -65,6 +67,4 @@ class FillagerOppslag(azureConfig: AzureConfig) {
     }
 }
 
-data class Fil(val tittel: String, val fysiskDokument: String)
-
-data class FilRespons(val filer: List<Fil>)
+data class FilDTO(val filreferanse: UUID, val tittel: String, val fil: String, val opprettet: LocalDateTime)
