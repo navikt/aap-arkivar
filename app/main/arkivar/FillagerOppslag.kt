@@ -37,16 +37,14 @@ class FillagerOppslag(azureConfig: AzureConfig) {
 
 
     fun hentFiler(
-        filReferanser: List<String>
+        innendingsreferanse: String
     ): List<FilDTO> = clientLatencyStats.startTimer().use {
         runBlocking {
-            filReferanser.map { referanse ->
                 val token = tokenProvider.getClientCredentialToken()
-                httpClient.get("/$referanse") {
+                httpClient.get("/innsending/$innendingsreferanse") {
                     bearerAuth(token)
                     contentType(ContentType.Application.Json)
                 }.body<List<FilDTO>>()
-            }.flatten()
         }
     }
 
